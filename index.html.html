@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium AI Resume Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --card-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.03)"/><circle cx="10" cy="50" r="0.5" fill="rgba(255,255,255,0.03)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            top: 70%;
+            right: 10%;
+            animation-delay: 5s;
+        }
+
+        .shape:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--primary-gradient);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .analyzer-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 5px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: var(--text-primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-content {
+            display: none;
+        }
+
+        .input-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .analyze-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .ai-assistant {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--success-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+
+        .ai-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .ai-status {
+            font-size: 0.9rem;
+            color: #27ae60;
+            margin-left: auto;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .message-ai {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 12px 15px;
+            border-radius: 15px 15px 15px 5px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message-user {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 15px 15px 5px 15px;
+            margin-left: 20px;
+            font-size: 0.95rem;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-send {
+            padding: 12px 18px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .job-recommendations {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+        }
+
+        .recommendations-header {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .job-match-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .job-match-card:hover {
+            transform: translateX(5px);
+        }
+
+        .job-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .job-company {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .match-score {
+            background: var(--success-gradient);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .results {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .score-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .score-display {
+            background: var(--success-gradient);
+            color: white;
+            padding: 40px;
+            border-radius: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .score-number {
+            font-size: 5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-label {
+            font-size: 1.4rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-breakdown {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .breakdown-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+        }
+
+        .metric-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .analysis-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            border-top: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .analysis-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-icon {
+            width: 30px;
+            height: 30px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .skill-match {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .skill-tag {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+            color: #2980b9;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(41, 128, 185, 0.2);
+        }
+
+        .skill-tag.missing {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #d63031;
+            border: 1px solid rgba(214, 48, 49, 0.2);
+        }
+
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 6px;
+            transition: width 1s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+            50% { transform: scale(1.1) rotate(180deg); opacity: 0.3; }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .score-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+            }
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.15);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtext {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .uploaded-file {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+            border: 1px solid rgba(41, 128, 185, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 12px;
+        }
+
+        .file-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .remove-file {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .tab-switch {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .switch-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #ddd;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active .toggle-slider {
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .tab-switch {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .toggle-switch {
+                align-self: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape">
+            <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                <circle cx="30" cy="30" r="25" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+            </svg>
+        </div>
+        <div class="shape">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <rect x="10" y="10" width="60" height="60" rx="15" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+            </svg>
+        </div>
+        <div class="shape">
+            <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
+                <polygon points="25,5 45,40 5,40" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Resume Analyzer</h1>
+            <p>Smart career matching and optimization platform</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="analyzer-section">
+                <div class="input-tabs">
+                    <button class="tab-button active" onclick="switchTab('resume')">📄 Resume</button>
+                    <button class="tab-button" onclick="switchTab('job')">💼 Job Description</button>
+                </div>
+                
+                <div id="resume-tab" class="input-content active">
+                    <div class="tab-switch">
+                        <span class="switch-label">Text Input</span>
+                        <div class="toggle-switch" onclick="toggleInputMode('resume')">
+                            <div class="toggle-slider"></div>
+                        </div>
+                        <span class="switch-label">File Upload</span>
+                    </div>
+                    
+                    <div id="resume-text-input">
+                        <div class="input-group">
+                            <label for="resume">📄 Your Resume Content</label>
+                            <textarea id="resume" placeholder="Paste your complete resume here...
+
+🎯 Pro Tip: Include all sections - experience, skills, education, projects, certifications
+
+Example:
+John Doe - Senior Software Engineer
+📧 john.doe@email.com | 📱 +1-555-0123
+
+🏢 EXPERIENCE:
+Senior Software Engineer at TechCorp (2020-Present)
+• Led development of microservices architecture using Python, Docker, Kubernetes
+• Implemented ML-powered recommendation system increasing user engagement by 35%
+• Managed team of 5 engineers, conducted code reviews and mentoring
+
+Software Engineer at StartupXYZ (2018-2020)
+• Built React-based dashboard processing 1M+ daily transactions
+• Optimized database queries reducing response time by 60%
+• Collaborated with data science team on predictive analytics features
+
+🛠️ TECHNICAL SKILLS:
+Languages: Python, JavaScript, TypeScript, Java, SQL
+Frameworks: React, Node.js, Django, Flask, Spring Boot
+Cloud & DevOps: AWS, Docker, Kubernetes, Jenkins, CI/CD
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
+ML/AI: TensorFlow, scikit-learn, pandas, numpy
+
+🎓 EDUCATION:
+M.S. Computer Science, Stanford University (2018)
+B.S. Software Engineering, UC Berkeley (2016)
+
+🏆 CERTIFICATIONS:
+• AWS Solutions Architect Professional
+• Google Cloud Professional Data Engineer
+• Certified Kubernetes Administrator"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="resume-file-input" style="display: none;">
+                        <div class="input-group">
+                            <label>📄 Upload Your Resume</label>
+                            <div class="file-upload-area" onclick="document.getElementById('resumeFile').click()">
+                                <div class="upload-icon">📄</div>
+                                <div class="upload-text">Click to upload or drag & drop</div>
+                                <div class="upload-subtext">Supports PDF, JPEG, PNG files (Max 10MB)</div>
+                                <input type="file" id="resumeFile" class="file-input" accept=".pdf,.jpeg,.jpg,.png" onchange="handleFileUpload(this, 'resume')">
+                            </div>
+                            <div id="resumeFileDisplay"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="job-tab" class="input-content">
+                    <div class="tab-switch">
+                        <span class="switch-label">Text Input</span>
+                        <div class="toggle-switch" onclick="toggleInputMode('job')">
+                            <div class="toggle-slider"></div>
+                        </div>
+                        <span class="switch-label">File Upload</span>
+                    </div>
+                    
+                    <div id="job-text-input">
+                        <div class="input-group">
+                            <label for="jobDesc">💼 Target Job Description</label>
+                            <textarea id="jobDesc" placeholder="Paste the complete job description here...
+
+🎯 Pro Tip: Include requirements, preferred qualifications, and responsibilities
+
+Example:
+Senior Full-Stack Engineer - AI/ML Platform
+🏢 Company: InnovateTech Solutions
+📍 Location: San Francisco, CA | Remote Friendly
+💰 Salary: $160K - $220K + Equity
+
+🎯 ABOUT THE ROLE:
+We're seeking a Senior Full-Stack Engineer to join our AI/ML platform team. You'll build scalable systems that power machine learning workflows for Fortune 500 clients.
+
+✅ REQUIRED QUALIFICATIONS:
+• 5+ years of software engineering experience
+• Strong proficiency in Python and modern web frameworks
+• Experience with React/Vue.js and modern frontend development
+• Knowledge of cloud platforms (AWS, GCP, or Azure)
+• Experience with containerization (Docker, Kubernetes)
+• Understanding of microservices architecture
+• Database design and optimization skills (SQL and NoSQL)
+
+🌟 PREFERRED QUALIFICATIONS:
+• M.S. in Computer Science or related field
+• Experience with ML/AI frameworks (TensorFlow, PyTorch, scikit-learn)
+• DevOps and CI/CD pipeline experience
+• Leadership or mentoring experience
+• Experience with data engineering tools and pipelines
+• Knowledge of distributed systems and scalability patterns
+
+🚀 RESPONSIBILITIES:
+• Design and implement scalable backend services and APIs
+• Build responsive, user-friendly frontend interfaces
+• Collaborate with ML engineers to productionize models
+• Optimize application performance and reliability
+• Mentor junior engineers and conduct code reviews
+• Participate in architectural decisions and technical planning"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="job-file-input" style="display: none;">
+                        <div class="input-group">
+                            <label>💼 Upload Job Description</label>
+                            <div class="file-upload-area" onclick="document.getElementById('jobFile').click()">
+                                <div class="upload-icon">💼</div>
+                                <div class="upload-text">Click to upload or drag & drop</div>
+                                <div class="upload-subtext">Supports PDF, JPEG, PNG files (Max 10MB)</div>
+                                <input type="file" id="jobFile" class="file-input" accept=".pdf,.jpeg,.jpg,.png" onchange="handleFileUpload(this, 'job')">
+                            </div>
+                            <div id="jobFileDisplay"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="analyze-btn" onclick="analyzeResume()">
+                    ✨ Analyze with AI
+                </button>
+            </div>
+            
+            <div class="sidebar">
+                <div class="ai-assistant">
+                    <div class="ai-header">
+                        <div class="ai-avatar">🤖</div>
+                        <div>
+                            <div class="ai-title">Career AI Assistant</div>
+                            <div class="ai-status">● Online</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-area" id="chatArea">
+                        <div class="chat-message">
+                            <div class="message-ai">👋 Hi! I'm your AI career assistant. I can help you optimize your resume, suggest career paths, and answer questions about job matching. Try asking me something!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything about your career..." onkeypress="handleChatEnter(event)">
+                        <button class="chat-send" onclick="sendChatMessage()">📤</button>
+                    </div>
+                </div>
+                
+                <div class="job-recommendations">
+                    <div class="recommendations-header">
+                        🎯 Job Recommendations
+                    </div>
+                    <div id="jobRecommendations">
+                        <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            Upload your resume to get personalized job recommendations!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="results" class="results">
+            <div class="score-dashboard">
+                <div id="scoreDisplay" class="score-display">
+                    <div class="score-number" id="scoreNumber">0</div>
+                    <div class="score-label">Job Fit Score</div>
+                </div>
+                
+                <div class="score-breakdown">
+                    <div class="breakdown-title">📊 Score Breakdown</div>
+                    <div class="metric">
+                        <span class="metric-name">Skills Match</span>
+                        <span class="metric-value" id="skillsMetric">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-name">Experience Level</span>
+                        <span class="metric-value" id="experienceMetric">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-name">Keywords Match</span>
+                        <span class="metric-value" id="keywordsMetric">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-name">Education Alignment</span>
+                        <span class="metric-value" id="educationMetric">0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="analysis-grid">
+                <div class="analysis-card">
+                    <div class="card-title">
+                        <div class="card-icon">🛠️</div>
+                        Skills Analysis
+                    </div>
+                    <div id="skillsMatch"></div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="skillsProgress"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-card">
+                    <div class="card-title">
+                        <div class="card-icon">📈</div>
+                        Experience Match
+                    </div>
+                    <div id="experienceMatch"></div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="experienceProgress"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-card">
+                    <div class="card-title">
+                        <div class="card-icon">🔍</div>
+                        Keywords Optimization
+                    </div>
+                    <div id="keywordsMatch"></div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="keywordsProgress"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-card">
+                    <div class="card-title">
+                        <div class="card-icon">❌</div>
+                        Areas for Improvement
+                    </div>
+                    <div id="missingSkills"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAnalysis = null;
+        let uploadedFiles = {
+            resume: null,
+            job: null
+        };
+
+        function toggleInputMode(type) {
+            const toggle = event.target.closest('.toggle-switch');
+            const textInput = document.getElementById(`${type}-text-input`);
+            const fileInput = document.getElementById(`${type}-file-input`);
+            
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                textInput.style.display = 'none';
+                fileInput.style.display = 'block';
+            } else {
+                textInput.style.display = 'block';
+                fileInput.style.display = 'none';
+            }
+        }
+
+        function handleFileUpload(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                return;
+            }
+            
+            uploadedFiles[type] = file;
+            displayUploadedFile(file, type);
+            
+            // Process file based on type
+            if (file.type.includes('image')) {
+                processImageFile(file, type);
+            } else if (file.type === 'application/pdf') {
+                processPDFFile(file, type);
+            }
+        }
+
+        function displayUploadedFile(file, type) {
+            const container = document.getElementById(`${type}FileDisplay`);
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            const fileIcon = getFileIcon(file.type);
+            
+            container.innerHTML = `
+                <div class="uploaded-file">
+                    <div class="file-info">
+                        <div class="file-icon">${fileIcon}</div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${fileSize} MB</div>
+                        </div>
+                    </div>
+                    <button class="remove-file" onclick="removeFile('${type}')">Remove</button>
+                </div>
+            `;
+        }
+
+        function getFileIcon(fileType) {
+            if (fileType === 'application/pdf') return '📄';
+            if (fileType.includes('image')) return '🖼️';
+            return '📄';
+        }
+
+        function removeFile(type) {
+            uploadedFiles[type] = null;
+            document.getElementById(`${type}FileDisplay`).innerHTML = '';
+            document.getElementById(`${type}File`).value = '';
+        }
+
+        function processImageFile(file, type) {
+            // For image files, we'll simulate OCR processing
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // In a real implementation, you'd use OCR library like Tesseract.js
+                // For demo, we'll simulate text extraction
+                setTimeout(() => {
+                    const simulatedText = getSimulatedTextFromImage(type);
+                    if (type === 'resume') {
+                        document.getElementById('resume').value = simulatedText;
+                    } else {
+                        document.getElementById('jobDesc').value = simulatedText;
+                    }
+                    addAIMessage(`📸 Extracted text from ${file.name} using OCR technology. Please review and edit if needed.`);
+                }, 2000);
+            };
+            reader.readAsDataURL(file);
+            
+            addAIMessage(`🔍 Processing image file... Extracting text using OCR...`);
+        }
+
+        function processPDFFile(file, type) {
+            // For PDF files, we'll simulate PDF text extraction
+            addAIMessage(`📄 Processing PDF file... Extracting text content...`);
+            
+            setTimeout(() => {
+                const simulatedText = getSimulatedTextFromPDF(type);
+                if (type === 'resume') {
+                    document.getElementById('resume').value = simulatedText;
+                } else {
+                    document.getElementById('jobDesc').value = simulatedText;
+                }
+                addAIMessage(`✅ Successfully extracted text from ${file.name}. Content has been loaded for analysis.`);
+            }, 3000);
+        }
+
+        function getSimulatedTextFromImage(type) {
+            if (type === 'resume') {
+                return `Sarah Johnson
+Software Engineer
+sarah.johnson@email.com | (555) 123-4567
+
+EXPERIENCE:
+Software Engineer at TechStart (2021-Present)
+• Developed React applications with TypeScript
+• Implemented RESTful APIs using Node.js and Express
+• Worked with PostgreSQL and MongoDB databases
+• Collaborated with cross-functional teams using Agile methodology
+
+Junior Developer at WebSolutions (2019-2021)
+• Built responsive websites using HTML, CSS, JavaScript
+• Integrated third-party APIs and payment gateways
+• Performed code reviews and maintained version control with Git
+
+SKILLS:
+JavaScript, TypeScript, React, Node.js, Express, HTML, CSS
+PostgreSQL, MongoDB, Git, Docker, AWS
+Agile, Scrum, Problem Solving, Team Collaboration
+
+EDUCATION:
+Bachelor of Science in Computer Science
+University of Technology (2019)`;
+            } else {
+                return `Full Stack Developer Position
+TechCorp Inc.
+
+REQUIREMENTS:
+• 3+ years of software development experience
+• Proficiency in JavaScript, React, Node.js
+• Experience with databases (SQL and NoSQL)
+• Knowledge of cloud platforms (AWS preferred)
+• Understanding of Agile development practices
+• Strong problem-solving and communication skills
+
+RESPONSIBILITIES:
+• Develop and maintain web applications
+• Collaborate with product and design teams
+• Write clean, maintainable code
+• Participate in code reviews
+• Contribute to technical architecture decisions
+
+PREFERRED QUALIFICATIONS:
+• Experience with TypeScript
+• Knowledge of containerization (Docker)
+• Previous startup experience
+• Bachelor's degree in Computer Science or related field`;
+            }
+        }
+
+        function getSimulatedTextFromPDF(type) {
+            if (type === 'resume') {
+                return `Michael Chen
+Senior Data Scientist
+michael.chen@email.com | LinkedIn: /in/michaelchen
+
+PROFESSIONAL SUMMARY:
+Experienced data scientist with 5+ years developing machine learning models and analytics solutions. Expertise in Python, R, SQL, and cloud platforms.
+
+EXPERIENCE:
+Senior Data Scientist - DataTech Solutions (2020-Present)
+• Built predictive models improving customer retention by 25%
+• Deployed ML pipelines using Python, TensorFlow, and AWS
+• Led data science team of 4 analysts
+• Collaborated with engineering teams on model productionization
+
+Data Analyst - FinanceCore (2018-2020)
+• Developed fraud detection algorithms using scikit-learn
+• Created automated reporting dashboards with Tableau
+• Performed statistical analysis on large datasets (10M+ records)
+
+TECHNICAL SKILLS:
+Programming: Python, R, SQL, JavaScript
+ML/AI: TensorFlow, scikit-learn, pandas, numpy, Keras
+Cloud: AWS (SageMaker, S3, EC2), Google Cloud Platform
+Tools: Jupyter, Git, Docker, Tableau, PowerBI
+
+EDUCATION:
+M.S. Data Science - Stanford University (2018)
+B.S. Mathematics - UC Berkeley (2016)
+
+CERTIFICATIONS:
+• AWS Certified Machine Learning Specialty
+• Google Cloud Professional Data Engineer`;
+            } else {
+                return `Senior Data Scientist Position
+AI Innovations Lab
+
+JOB DESCRIPTION:
+We are seeking a Senior Data Scientist to join our AI research team. You will develop cutting-edge machine learning solutions and lead data science initiatives.
+
+REQUIRED QUALIFICATIONS:
+• Master's degree in Data Science, Statistics, or related field
+• 5+ years of experience in data science and machine learning
+• Expert-level Python programming skills
+• Experience with TensorFlow, PyTorch, or similar frameworks
+• Strong background in statistics and experimental design
+• Experience with cloud platforms (AWS, GCP, or Azure)
+• Proven track record of deploying ML models to production
+
+PREFERRED QUALIFICATIONS:
+• PhD in quantitative field
+• Experience with NLP and computer vision
+• Knowledge of MLOps practices
+• Experience leading data science teams
+• Publications in peer-reviewed journals
+
+RESPONSIBILITIES:
+• Design and implement advanced ML algorithms
+• Lead end-to-end data science projects
+• Mentor junior data scientists
+• Collaborate with engineering teams on model deployment
+• Present findings to executive leadership
+• Stay current with latest research and industry trends
+
+BENEFITS:
+• Competitive salary and equity package
+• Flexible work arrangements
+• Professional development budget
+• Health, dental, and vision insurance`;
+            }
+        }
+
+        // Add drag and drop functionality
+        function setupDragAndDrop() {
+            const uploadAreas = document.querySelectorAll('.file-upload-area');
+            
+            uploadAreas.forEach(area => {
+                area.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    area.classList.add('dragover');
+                });
+                
+                area.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                });
+                
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        const input = area.querySelector('input[type="file"]');
+                        input.files = files;
+                        
+                        const type = input.id.includes('resume') ? 'resume' : 'job';
+                        handleFileUpload(input, type);
+                    }
+                });
+            });
+        }
+
+        function analyzeResume() {
+            let resumeText = '';
+            let jobText = '';
+            
+            // Get text from either textarea or uploaded file
+            const resumeToggle = document.querySelector('#resume-tab .toggle-switch');
+            const jobToggle = document.querySelector('#job-tab .toggle-switch');
+            
+            if (resumeToggle.classList.contains('active') && uploadedFiles.resume) {
+                resumeText = document.getElementById('resume').value.toLowerCase();
+            } else {
+                resumeText = document.getElementById('resume').value.toLowerCase();
+            }
+            
+            if (jobToggle.classList.contains('active') && uploadedFiles.job) {
+                jobText = document.getElementById('jobDesc').value.toLowerCase();
+            } else {
+                jobText = document.getElementById('jobDesc').value.toLowerCase();
+            }
+            
+            if (!resumeText.trim() || !jobText.trim()) {
+                alert('Please provide both resume and job description (either as text or uploaded files)!');
+                return;
+            }
+            
+            // Extract and analyze data
+            const resumeSkills = extractSkills(resumeText);
+            const jobSkills = extractSkills(jobText);
+            const resumeKeywords = extractKeywords(resumeText);
+            const jobKeywords = extractKeywords(jobText);
+            
+            // Calculate matches
+            const skillsMatch = calculateMatch(resumeSkills, jobSkills);
+            const keywordsMatch = calculateMatch(resumeKeywords, jobKeywords);
+            const experienceMatch = calculateExperienceMatch(resumeText, jobText);
+            const educationMatch = calculateEducationMatch(resumeText, jobText);
+            
+            // Calculate overall score with weighted factors
+            const overallScore = Math.round(
+                (skillsMatch.percentage * 0.35) + 
+                (keywordsMatch.percentage * 0.25) + 
+                (experienceMatch * 0.25) + 
+                (educationMatch * 0.15)
+            );
+            
+            currentAnalysis = {
+                score: overallScore,
+                skills: skillsMatch,
+                keywords: keywordsMatch,
+                experience: experienceMatch,
+                education: educationMatch,
+                resumeSkills: resumeSkills,
+                jobSkills: jobSkills
+            };
+            
+            // Display results
+            displayResults(currentAnalysis);
+            updateJobRecommendations(resumeSkills);
+        }
+        
+        function extractSkills(text) {
+            const skillPatterns = [
+                'python', 'javascript', 'java', 'react', 'angular', 'vue', 'node.js', 'express',
+                'html', 'css', 'sql', 'mongodb', 'postgresql', 'mysql', 'git', 'docker',
+                'kubernetes', 'aws', 'azure', 'gcp', 'machine learning', 'ml', 'ai',
+                'tensorflow', 'pytorch', 'pandas', 'numpy', 'scikit-learn', 'django',
+                'flask', 'spring', 'bootstrap', 'jquery', 'typescript', 'php', 'ruby',
+                'go', 'rust', 'swift', 'kotlin', 'c++', 'c#', '.net', 'devops',
+                'jenkins', 'ci/cd', 'agile', 'scrum', 'jira', 'confluence', 'linux',
+                'windows', 'macos', 'rest api', 'graphql', 'microservices', 'redis',
+                'elasticsearch', 'kafka', 'rabbitmq', 'firebase', 'heroku', 'netlify',
+                'spark', 'hadoop', 'tableau', 'power bi', 'excel', 'r programming',
+                'scala', 'etl', 'data warehousing', 'big data', 'nosql', 'orm'
+            ];
+            
+            return skillPatterns.filter(skill => text.includes(skill));
+        }
+        
+        function extractKeywords(text) {
+            const keywordPatterns = [
+                'senior', 'junior', 'lead', 'manager', 'architect', 'developer', 'engineer',
+                'full stack', 'frontend', 'backend', 'mobile', 'web', 'software',
+                'application', 'system', 'database', 'cloud', 'security', 'testing',
+                'deployment', 'integration', 'optimization', 'performance', 'scalability',
+                'collaboration', 'teamwork', 'leadership', 'mentoring', 'project management',
+                'problem solving', 'analytical', 'communication', 'documentation',
+                'startup', 'enterprise', 'remote', 'hybrid', 'fintech', 'healthcare',
+                'e-commerce', 'saas', 'b2b', 'b2c', 'api development', 'data science'
+            ];
+            
+            return keywordPatterns.filter(keyword => text.includes(keyword));
+        }
+        
+        function calculateMatch(resumeItems, jobItems) {
+            const matched = resumeItems.filter(item => jobItems.includes(item));
+            const percentage = jobItems.length > 0 ? Math.round((matched.length / jobItems.length) * 100) : 0;
+            
+            return {
+                matched: matched,
+                missing: jobItems.filter(item => !resumeItems.includes(item)),
+                percentage: percentage
+            };
+        }
+        
+        function calculateExperienceMatch(resume, jobDesc) {
+            const resumeYears = extractYears(resume);
+            const requiredYears = extractYears(jobDesc);
+            
+            if (requiredYears === 0) return 85;
+            if (resumeYears === 0) return 40;
+            
+            const ratio = resumeYears / requiredYears;
+            return Math.min(100, Math.round(ratio * 100));
+        }
+        
+        function calculateEducationMatch(resume, jobDesc) {
+            const resumeEducation = extractEducation(resume);
+            const requiredEducation = extractEducation(jobDesc);
+            
+            if (requiredEducation.length === 0) return 80;
+            
+            const matched = resumeEducation.filter(edu => 
+                requiredEducation.some(req => edu.includes(req) || req.includes(edu))
+            );
+            
+            return matched.length > 0 ? 90 : 60;
+        }
+        
+        function extractYears(text) {
+            const yearPatterns = text.match(/(\d+)\s*(?:\+?\s*)?(?:years?|yrs?)/g);
+            if (!yearPatterns) return 0;
+            
+            const years = yearPatterns.map(match => {
+                const num = match.match(/\d+/);
+                return num ? parseInt(num[0]) : 0;
+            });
+            
+            return Math.max(...years);
+        }
+        
+        function extractEducation(text) {
+            const educationPatterns = [
+                'bachelor', 'master', 'phd', 'doctorate', 'associate',
+                'computer science', 'engineering', 'mathematics', 'statistics',
+                'data science', 'information technology', 'software engineering'
+            ];
+            
+            return educationPatterns.filter(edu => text.includes(edu));
+        }
+        
+        function displayResults(analysis) {
+            document.getElementById('results').style.display = 'block';
+            
+            // Animate score
+            animateScore(analysis.score);
+            updateScoreColor(analysis.score);
+            
+            // Update breakdown metrics
+            document.getElementById('skillsMetric').textContent = analysis.skills.percentage + '%';
+            document.getElementById('experienceMetric').textContent = analysis.experience + '%';
+            document.getElementById('keywordsMetric').textContent = analysis.keywords.percentage + '%';
+            document.getElementById('educationMetric').textContent = analysis.education + '%';
+            
+            // Update analysis cards
+            displaySkillsAnalysis(analysis.skills);
+            displayExperienceAnalysis(analysis.experience);
+            displayKeywordsAnalysis(analysis.keywords);
+            displayMissingSkills(analysis.skills.missing);
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            
+            // Add chat message about results
+            addAIMessage(`🎉 Analysis complete! Your resume scores ${analysis.score}% for this position. ${getScoreAdvice(analysis.score)}`);
+        }
+        
+        function animateScore(targetScore) {
+            const scoreElement = document.getElementById('scoreNumber');
+            let currentScore = 0;
+            const increment = targetScore / 60;
+            
+            const animation = setInterval(() => {
+                currentScore += increment;
+                if (currentScore >= targetScore) {
+                    currentScore = targetScore;
+                    clearInterval(animation);
+                }
+                scoreElement.textContent = Math.round(currentScore);
+            }, 25);
+        }
+        
+        function updateScoreColor(score) {
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            if (score >= 80) {
+                scoreDisplay.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+            } else if (score >= 60) {
+                scoreDisplay.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            } else {
+                scoreDisplay.style.background = 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)';
+            }
+        }
+        
+        function displaySkillsAnalysis(skillsMatch) {
+            const container = document.getElementById('skillsMatch');
+            const matched = skillsMatch.matched.map(skill => 
+                `<span class="skill-tag">${skill}</span>`
+            ).join('');
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; font-weight: 600;">
+                    ✅ ${skillsMatch.matched.length} of ${skillsMatch.matched.length + skillsMatch.missing.length} required skills matched
+                </div>
+                <div class="skill-match">${matched || '<span style="color: #7f8c8d;">No matching skills found</span>'}</div>
+            `;
+            
+            document.getElementById('skillsProgress').style.width = skillsMatch.percentage + '%';
+        }
+        
+        function displayExperienceAnalysis(experienceMatch) {
+            const container = document.getElementById('experienceMatch');
+            let message = '';
+            
+            if (experienceMatch >= 90) {
+                message = '🌟 Excellent experience match! You exceed the requirements.';
+            } else if (experienceMatch >= 70) {
+                message = '✅ Good experience level for this position.';
+            } else if (experienceMatch >= 50) {
+                message = '⚠️ Some experience gap, but still viable.';
+            } else {
+                message = '📚 Consider gaining more relevant experience.';
+            }
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; font-weight: 600;">${experienceMatch}% Experience Match</div>
+                <div style="color: #7f8c8d;">${message}</div>
+            `;
+            
+            document.getElementById('experienceProgress').style.width = experienceMatch + '%';
+        }
+        
+        function displayKeywordsAnalysis(keywordsMatch) {
+            const container = document.getElementById('keywordsMatch');
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; font-weight: 600;">
+                    📝 ${keywordsMatch.percentage}% keyword optimization
+                </div>
+                <div style="color: #7f8c8d;">
+                    ${keywordsMatch.matched.length} relevant keywords found in your resume
+                </div>
+            `;
+            
+            document.getElementById('keywordsProgress').style.width = keywordsMatch.percentage + '%';
+        }
+        
+        function displayMissingSkills(missingSkills) {
+            const container = document.getElementById('missingSkills');
+            if (missingSkills.length === 0) {
+                container.innerHTML = '<div style="color: #27ae60; font-weight: 600;">🎉 All required skills are present!</div>';
+            } else {
+                const missing = missingSkills.slice(0, 8).map(skill => 
+                    `<span class="skill-tag missing">${skill}</span>`
+                ).join('');
+                container.innerHTML = `
+                    <div style="margin-bottom: 15px; font-weight: 600; color: #d63031;">
+                        Missing ${missingSkills.length} key skills:
+                    </div>
+                    <div class="skill-match">${missing}</div>
+                `;
+            }
+        }
+        
+        function updateJobRecommendations(userSkills) {
+            const jobData = [
+                {
+                    title: 'Senior Software Engineer',
+                    company: 'TechCorp',
+                    skills: ['python', 'react', 'aws', 'docker'],
+                    match: calculateJobMatch(userSkills, ['python', 'react', 'aws', 'docker'])
+                },
+                {
+                    title: 'Full Stack Developer',
+                    company: 'StartupXYZ',
+                    skills: ['javascript', 'node.js', 'mongodb', 'react'],
+                    match: calculateJobMatch(userSkills, ['javascript', 'node.js', 'mongodb', 'react'])
+                },
+                {
+                    title: 'Data Scientist',
+                    company: 'DataInc',
+                    skills: ['python', 'machine learning', 'pandas', 'sql'],
+                    match: calculateJobMatch(userSkills, ['python', 'machine learning', 'pandas', 'sql'])
+                },
+                {
+                    title: 'DevOps Engineer',
+                    company: 'CloudTech',
+                    skills: ['kubernetes', 'docker', 'aws', 'jenkins'],
+                    match: calculateJobMatch(userSkills, ['kubernetes', 'docker', 'aws', 'jenkins'])
+                },
+                {
+                    title: 'Frontend Developer',
+                    company: 'DesignCo',
+                    skills: ['react', 'typescript', 'css', 'javascript'],
+                    match: calculateJobMatch(userSkills, ['react', 'typescript', 'css', 'javascript'])
+                }
+            ];
+            
+            // Sort by match percentage
+            jobData.sort((a, b) => b.match - a.match);
+            
+            const container = document.getElementById('jobRecommendations');
+            const jobCards = jobData.slice(0, 3).map(job => `
+                <div class="job-match-card">
+                    <div class="job-title">${job.title}</div>
+                    <div class="job-company">${job.company}</div>
+                    <span class="match-score">${job.match}% Match</span>
+                </div>
+            `).join('');
+            
+            container.innerHTML = jobCards;
+        }
+        
+        function calculateJobMatch(userSkills, jobSkills) {
+            const matched = userSkills.filter(skill => jobSkills.includes(skill));
+            return Math.round((matched.length / jobSkills.length) * 100);
+        }
+        
+        function getScoreAdvice(score) {
+            if (score >= 85) return "Excellent match! You're a strong candidate for this position.";
+            if (score >= 70) return "Good match! Consider highlighting your relevant experience.";
+            if (score >= 55) return "Decent match. Focus on acquiring the missing skills.";
+            return "This role might be a stretch. Consider similar positions that better match your skills.";
+        }
+        
+        // AI Chat Functions
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addUserMessage(message);
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const response = generateAIResponse(message);
+                addAIMessage(response);
+            }, 1000);
+        }
+        
+        function handleChatEnter(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+        
+        function addUserMessage(message) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerHTML = `<div class="message-user">${message}</div>`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function addAIMessage(message) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerHTML = `<div class="message-ai">${message}</div>`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function generateAIResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('improve') || lowerMessage.includes('better')) {
+                return "💡 To improve your resume score: 1) Add missing skills from the analysis, 2) Include quantified achievements, 3) Use keywords from the job description, 4) Highlight relevant projects and certifications.";
+            }
+            
+            if (lowerMessage.includes('salary') || lowerMessage.includes('pay')) {
+                return "💰 Based on your skills, typical salary ranges vary by location and company size. Senior roles with your skill set often range from $120K-$200K+. Consider negotiating based on your unique value proposition.";
+            }
+            
+            if (lowerMessage.includes('skills') || lowerMessage.includes('learn')) {
+                if (currentAnalysis && currentAnalysis.skills.missing.length > 0) {
+                    return `🎯 Focus on learning these in-demand skills: ${currentAnalysis.skills.missing.slice(0, 3).join(', ')}. I recommend starting with online courses, personal projects, and contributing to open source.`;
+                }
+                return "🎯 Based on current trends, focus on cloud technologies (AWS/Azure), containerization (Docker/Kubernetes), and emerging frameworks in your field.";
+            }
+            
+            if (lowerMessage.includes('interview') || lowerMessage.includes('prepare')) {
+                return "🎤 Interview prep tips: 1) Practice explaining your projects with STAR method, 2) Prepare questions about the role/company, 3) Review technical concepts, 4) Mock interview practice, 5) Research the company's tech stack and culture.";
+            }
+            
+            if (lowerMessage.includes('career') || lowerMessage.includes('path')) {
+                return "🚀 Career growth strategies: 1) Identify your strengths and interests, 2) Build expertise in emerging technologies, 3) Seek mentorship and networking opportunities, 4) Consider certifications, 5) Take on leadership projects.";
+            }
+            
+            if (lowerMessage.includes('remote') || lowerMessage.includes('work from home')) {
+                return "🏠 Remote work tips: Highlight collaboration tools experience, showcase self-management skills, emphasize communication abilities, and mention any previous remote work success in your resume.";
+            }
+            
+            return "🤖 I'm here to help with your career questions! Ask me about resume optimization, skill development, interview preparation, career paths, or job market insights.";
+        }
+        
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.input-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        // Initialize drag and drop when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            
+            setTimeout(() => {
+                addAIMessage("🚀 Welcome! I'm here to help optimize your career. Upload your resume and a job description to get started, or ask me any career-related questions!");
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
